@@ -4,6 +4,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <time.h>
+#include <iostream>
 
 
 #ifndef F_PI
@@ -147,7 +148,7 @@ char * ColorNames[ ] =
 // the color definitions:
 // this order must match the menu order
 
-const GLfloat Colors[ ][3] = 
+const GLfloat Colors[ ][3] =
 {
 	{ 1., 0., 0. },		// red
 	{ 1., 1., 0. },		// yellow
@@ -199,6 +200,7 @@ int		ShadowsOn;				// != 0 means to turn shadows on
 float	Time;					// used for animation, this has a value between 0. and 1.
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
+bool	Frozen;
 
 
 // function prototypes:
@@ -304,16 +306,18 @@ TimeOfDaySeed( )
 
 // these are here for when you need them -- just uncomment the ones you need:
 
-//#include "setmaterial.cpp"
-//#include "setlight.cpp"
+#include "setmaterial.cpp"
+#include "setlight.cpp"
 #include "osusphere.cpp"
-#include "osucone.cpp"
-#include "osutorus.cpp"
+//#include "osucone.cpp"
+//#include "osutorus.cpp"
 //#include "bmptotexture.cpp"
-//#include "loadobjfile.cpp"
-//#include "keytime.cpp"
+#include "loadobjfile.cpp"
+#include "keytime.cpp"
 //#include "glslprogram.cpp"
 //#include "vertexbufferobject.cpp"
+
+Keytimes Xpos, Xrot1;
 
 
 // main program:
@@ -440,8 +444,8 @@ Display( )
 
 	// rotate the scene:
 
-	glRotatef( (GLfloat)Yrot, 0.f, 1.f, 0.f );
 	glRotatef( (GLfloat)Xrot, 1.f, 0.f, 0.f );
+	glRotatef( (GLfloat)Yrot, 0.f, 1.f, 0.f );
 
 	// uniformly scale the scene:
 
@@ -474,13 +478,33 @@ Display( )
 	}
 
 	// since we are using glScalef( ), be sure the normals get unitized:
+	const int MSEC = 10000;							// 10000 milliseconds = 10 seconds
+
 
 	glEnable( GL_NORMALIZE );
 
 
 	// draw the box object by calling up its display list:
 
-	glCallList( BoxList );
+	SetPointLight( GL_LIGHT0, 0, 5, 0, 1., 1., 1.);
+	glEnable( GL_LIGHTING );
+	glEnable( GL_LIGHT0 );
+
+	// Turn # msec into the cycle ( 0 - MSEC - 1 ):
+	int msec = glutGet( GLUT_ELAPSED_TIME ) % MSEC;	// 0-9999
+
+	// Turn that into a time in seconds
+	float nowTime = (float)msec / 1000.;			// 0.-10.
+
+	glPushMatrix();
+		glTranslatef( Xpos.GetValue(nowTime), 0., 0.);
+		glRotatef( Xrot1.GetValue(nowTime), 1., 0., 0.);	// Angle in degrees
+		glCallList( BoxList );
+	glPopMatrix();
+
+	glDisable( GL_LIGHTING );
+
+
 
 #ifdef DEMO_Z_FIGHTING
 	if( DepthFightingOn != 0 )
@@ -773,7 +797,18 @@ InitGraphics( )
 #endif
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
+	Xpos.Init();
+	Xpos.AddTimeValue( 0.0,		0.000 );
+	Xpos.AddTimeValue( 0.5,		2.718 );
+	Xpos.AddTimeValue( 2.0,		0.333 );
+	Xpos.AddTimeValue( 5.0,		3.142 );
+	Xpos.AddTimeValue( 8.0,		2.718 );
+	Xpos.AddTimeValue( 10.0,	0.000 );
 
+	Xrot1.Init();
+	Xrot1.AddTimeValue( 0.0,	0.000 );
+	Xrot1.AddTimeValue( 1.0,	M_PI );
+	Xrot1.AddTimeValue( 10.0,	2 * M_PI);
 }
 
 
@@ -957,6 +992,18 @@ Keyboard( unsigned char c, int x, int y )
 			DoMainMenu( QUIT );	// will not return here
 			break;				// happy compiler
 
+		case 'f':
+		case 'F':
+			std::cout << "Animation Frozen" << std::endl;
+			Frozen = !Frozen;
+			if (Frozen) {
+				glutIdleFunc( NULL );
+			}
+			else {
+				glutIdleFunc( Animate );
+			}
+			break;
+
 		default:
 			fprintf( stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c );
 	}
@@ -978,7 +1025,7 @@ MouseButton( int button, int state, int x, int y )
 	if( DebugOn != 0 )
 		fprintf( stderr, "MouseButton: %d, %d, %d, %d\n", button, state, x, y );
 
-	
+
 	// get the proper button bit mask:
 
 	switch( button )
@@ -1173,7 +1220,7 @@ Axes( float length )
 			int j = xorder[i];
 			if( j < 0 )
 			{
-				
+
 				glEnd( );
 				glBegin( GL_LINE_STRIP );
 				j = -j;
@@ -1189,7 +1236,7 @@ Axes( float length )
 			int j = yorder[i];
 			if( j < 0 )
 			{
-				
+
 				glEnd( );
 				glBegin( GL_LINE_STRIP );
 				j = -j;
@@ -1205,7 +1252,7 @@ Axes( float length )
 			int j = zorder[i];
 			if( j < 0 )
 			{
-				
+
 				glEnd( );
 				glBegin( GL_LINE_STRIP );
 				j = -j;
@@ -1254,7 +1301,7 @@ HsvRgb( float hsv[3], float rgb[3] )
 	}
 
 	// get an rgb from the hue itself:
-	
+
 	float i = (float)floor( h );
 	float f = h - i;
 	float p = v * ( 1.f - s );
@@ -1267,23 +1314,23 @@ HsvRgb( float hsv[3], float rgb[3] )
 		case 0:
 			r = v;	g = t;	b = p;
 			break;
-	
+
 		case 1:
 			r = q;	g = v;	b = p;
 			break;
-	
+
 		case 2:
 			r = p;	g = v;	b = t;
 			break;
-	
+
 		case 3:
 			r = p;	g = q;	b = v;
 			break;
-	
+
 		case 4:
 			r = t;	g = p;	b = v;
 			break;
-	
+
 		case 5:
 			r = v;	g = p;	b = q;
 			break;
