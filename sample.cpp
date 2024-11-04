@@ -526,13 +526,13 @@ Display( )
 	int msec = glutGet( GLUT_ELAPSED_TIME ) % 10000;	// 0-9999
 
 	// Turn that into a time in seconds
-	float nowTime = (float)msec / 1000.;				// 0.-10.
+	float nowTime = ((float)msec / 10000.) * 10;		// 0.-10.
 
 	glPushMatrix();
 		glTranslatef(
-			Xpos1.GetValue(Time),
-			Ypos1.GetValue(Time),
-			Zpos1.GetValue(Time)
+			Xpos1.GetValue(nowTime),
+			Ypos1.GetValue(nowTime),
+			Zpos1.GetValue(nowTime)
 		);
 		//glRotatef( Xrot1.GetValue(Time), 1., 0., 0. );
 		glCallList( BoxList );
