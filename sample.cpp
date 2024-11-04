@@ -323,6 +323,8 @@ TimeOfDaySeed( )
 //#include "vertexbufferobject.cpp"
 
 Keytimes	Xpos1, Xrot1;
+Keytimes	Ypos1, Yrot1;
+Keytimes	Zpos1, Zrot1;
 
 
 // main program:
@@ -521,14 +523,18 @@ Display( )
 	glShadeModel( GL_FLAT );
 
 	// Turn # msec into the cycle ( 0 - MSEC - 1 ):
-	//int msec = glutGet( GLUT_ELAPSED_TIME ) % MS_PER_CYCLE;	// 0-9999
+	int msec = glutGet( GLUT_ELAPSED_TIME ) % 10000;	// 0-9999
 
 	// Turn that into a time in seconds
-	//float nowTime = (float)msec / 1000.;			// 0.-10.
+	float nowTime = (float)msec / 1000.;				// 0.-10.
 
 	glPushMatrix();
-		glTranslatef( Xpos1.GetValue(Time), 0., 0.);
-		glRotatef( Xrot1.GetValue(Time), 1., 0., 0.);	// Angle in degrees
+		glTranslatef(
+			Xpos1.GetValue(Time),
+			Ypos1.GetValue(Time),
+			Zpos1.GetValue(Time)
+		);
+		//glRotatef( Xrot1.GetValue(Time), 1., 0., 0. );
 		glCallList( BoxList );
 	glPopMatrix();
 
@@ -870,19 +876,35 @@ InitGraphics( )
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
 	Xpos1.Init();
-	Xpos1.AddTimeValue( 0.0,		0.000 );
-	Xpos1.AddTimeValue( 0.5,		2.718 );
-	Xpos1.AddTimeValue( 2.0,		0.333 );
-	Xpos1.AddTimeValue( 5.0,		3.142 );
-	Xpos1.AddTimeValue( 8.0,		2.718 );
-	Xpos1.AddTimeValue( 10.0,		0.000 );
+	Xpos1.AddTimeValue( 0.0,	0.000 );
+	Xpos1.AddTimeValue( 10.0,	0.000 );
+	Xpos1.AddTimeValue( 7.5,	2.500 );
+	Xpos1.AddTimeValue( 5.0,	5.000 );
+	Xpos1.AddTimeValue( 2.5,	2.500 );
+
+
+	Ypos1.Init();
+	Ypos1.AddTimeValue(0.0, 0.000);
+	Ypos1.AddTimeValue(10.0, 0.000);
+	Ypos1.AddTimeValue(7.5, 2.500);
+	Ypos1.AddTimeValue(5.0, 5.000);
+	Ypos1.AddTimeValue(2.5, 2.500);
+
+
+	Zpos1.Init();
+	Zpos1.AddTimeValue(0.0, 0.000);
+	Zpos1.AddTimeValue(10.0, 0.000);
+	Zpos1.AddTimeValue(7.5, 2.500);
+	Zpos1.AddTimeValue(5.0, 5.000);
+	Zpos1.AddTimeValue(2.5, 2.500);
+
 
 	Xrot1.Init();
 	Xrot1.AddTimeValue( 0.0,	0.000 );
-	Xpos1.AddTimeValue( 0.5,	2.718 );
-	Xpos1.AddTimeValue( 2.0,	0.333 );
-	Xpos1.AddTimeValue( 5.0,	3.142 );
-	Xpos1.AddTimeValue( 8.0,	2.718 );
+	Xrot1.AddTimeValue( 0.5,	2.718 );
+	Xrot1.AddTimeValue( 2.0,	0.333 );
+	Xrot1.AddTimeValue( 5.0,	3.142 );
+	Xrot1.AddTimeValue( 8.0,	2.718 );
 	Xrot1.AddTimeValue( 10.0,	0.000 );
 }
 
