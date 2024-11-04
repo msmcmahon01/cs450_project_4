@@ -52,7 +52,7 @@
 
 // title of these windows:
 
-const char *WINDOWTITLE = "OpenGL / GLUT Sample -- Joe Graphics";
+const char *WINDOWTITLE = "CS 450 Project 4 -- McMahon";
 const char *GLUITITLE   = "User Interface Window";
 
 // what the glui package defines as true and false:
@@ -188,19 +188,24 @@ int		ActiveButton;			// current button that is down
 GLuint	AxesList;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
 GLuint	BoxList;				// object display list
+GLuint	FooList;
+GLuint	BarList;
+GLuint	BazList;
 int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		DepthBufferOn;			// != 0 means to use the z-buffer
 int		DepthFightingOn;		// != 0 means to force the creation of z-fighting
 int		MainWindow;				// window id for main graphics window
 int		NowColor;				// index into Colors[ ]
-int		NowProjection;		// ORTHO or PERSP
+int		NowProjection;			// ORTHO or PERSP
 float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 float	Time;					// used for animation, this has a value between 0. and 1.
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 bool	Frozen;
+int		NowLight;
+int		LightColor;
 
 
 // function prototypes:
@@ -317,7 +322,7 @@ TimeOfDaySeed( )
 //#include "glslprogram.cpp"
 //#include "vertexbufferobject.cpp"
 
-Keytimes Xpos, Xrot1;
+Keytimes	Xpos1, Xrot1;
 
 
 // main program:
@@ -478,31 +483,69 @@ Display( )
 	}
 
 	// since we are using glScalef( ), be sure the normals get unitized:
-	const int MSEC = 10000;							// 10000 milliseconds = 10 seconds
-
 
 	glEnable( GL_NORMALIZE );
 
 
 	// draw the box object by calling up its display list:
 
-	SetPointLight( GL_LIGHT0, 0, 5, 0, 1., 1., 1.);
+	float
+	lightx = 0,
+	lighty = 5,
+	lightz = 0;
+
+	if ( NowLight == 0 ) {
+		glLightf( GL_LIGHT0, GL_SPOT_CUTOFF, 180.);
+		switch ( LightColor ) {
+		case 1: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 1, 0, 0); break;
+		case 2: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 0, 1, 0); break;
+		case 3: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 0, 0, 1); break;
+		case 4: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 0, 1, 1); break;
+		case 5: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 1, 0, 1); break;
+		default: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 1, 1, 1);
+		}
+	}
+	else if ( NowLight == 1 ) {
+		switch ( LightColor ) {
+		case 1: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 1, 0, 0); break;
+		case 2: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 0, 1, 0); break;
+		case 3: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 0, 0, 1); break;
+		case 4: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 0, 1, 1); break;
+		case 5: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 1, 0, 1); break;
+		default: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 1, 1, 1);
+		}
+	}
+
 	glEnable( GL_LIGHTING );
 	glEnable( GL_LIGHT0 );
+	glShadeModel( GL_FLAT );
 
 	// Turn # msec into the cycle ( 0 - MSEC - 1 ):
-	int msec = glutGet( GLUT_ELAPSED_TIME ) % MSEC;	// 0-9999
+	//int msec = glutGet( GLUT_ELAPSED_TIME ) % MS_PER_CYCLE;	// 0-9999
 
 	// Turn that into a time in seconds
-	float nowTime = (float)msec / 1000.;			// 0.-10.
+	//float nowTime = (float)msec / 1000.;			// 0.-10.
 
 	glPushMatrix();
-		glTranslatef( Xpos.GetValue(nowTime), 0., 0.);
-		glRotatef( Xrot1.GetValue(nowTime), 1., 0., 0.);	// Angle in degrees
+		glTranslatef( Xpos1.GetValue(Time), 0., 0.);
+		glRotatef( Xrot1.GetValue(Time), 1., 0., 0.);	// Angle in degrees
 		glCallList( BoxList );
 	glPopMatrix();
 
 	glDisable( GL_LIGHTING );
+
+	glPushMatrix();
+		switch ( LightColor ) {
+			case 1: glColor3f(1, 0, 0); break;
+			case 2: glColor3f(0, 1, 0); break;
+			case 3: glColor3f(0, 0, 1); break;
+			case 4: glColor3f(0, 1, 1); break;
+			case 5: glColor3f(1, 0, 1); break;
+			default: glColor3f(1, 1, 1);
+		}
+		glTranslatef(lightx, lighty, lightz);
+		OsuSphere( 0.5, 20, 20 );
+	glPopMatrix();
 
 
 
@@ -657,6 +700,35 @@ DoProjectMenu( int id )
 }
 
 
+void
+DoLightColorMenu(int id) {
+	LightColor = id;
+
+	switch (id) {
+	case 0: std::cout << "Changing color to White." << std::endl; break;
+	case 1: std::cout << "Changing color to Red." << std::endl; break;
+	case 2: std::cout << "Changing color to Green." << std::endl; break;
+	case 3: std::cout << "Changing color to Blue." << std::endl; break;
+	case 4: std::cout << "Changing color to Cyan." << std::endl; break;
+	case 5: std::cout << "Changing color to Magenta." << std::endl; break;
+	}
+
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
+}
+
+
+void
+DoLightTypeMenu(int id) {
+	NowLight = id;
+
+	switch (id) {
+	case 0: std::cout << "Changing light to Point Light" << std::endl; break;
+	case 1: std::cout << "Changing light to Spot Light" << std::endl; break;
+	}
+}
+
+
 // use glut to display a string of characters using a raster font:
 
 void
@@ -797,18 +869,21 @@ InitGraphics( )
 #endif
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
-	Xpos.Init();
-	Xpos.AddTimeValue( 0.0,		0.000 );
-	Xpos.AddTimeValue( 0.5,		2.718 );
-	Xpos.AddTimeValue( 2.0,		0.333 );
-	Xpos.AddTimeValue( 5.0,		3.142 );
-	Xpos.AddTimeValue( 8.0,		2.718 );
-	Xpos.AddTimeValue( 10.0,	0.000 );
+	Xpos1.Init();
+	Xpos1.AddTimeValue( 0.0,		0.000 );
+	Xpos1.AddTimeValue( 0.5,		2.718 );
+	Xpos1.AddTimeValue( 2.0,		0.333 );
+	Xpos1.AddTimeValue( 5.0,		3.142 );
+	Xpos1.AddTimeValue( 8.0,		2.718 );
+	Xpos1.AddTimeValue( 10.0,		0.000 );
 
 	Xrot1.Init();
 	Xrot1.AddTimeValue( 0.0,	0.000 );
-	Xrot1.AddTimeValue( 1.0,	M_PI );
-	Xrot1.AddTimeValue( 10.0,	2 * M_PI);
+	Xpos1.AddTimeValue( 0.5,	2.718 );
+	Xpos1.AddTimeValue( 2.0,	0.333 );
+	Xpos1.AddTimeValue( 5.0,	3.142 );
+	Xpos1.AddTimeValue( 8.0,	2.718 );
+	Xrot1.AddTimeValue( 10.0,	0.000 );
 }
 
 
@@ -942,9 +1017,24 @@ InitMenus( )
 	glutAddMenuEntry( "Orthographic",  ORTHO );
 	glutAddMenuEntry( "Perspective",   PERSP );
 
+	int lightcolormenu = glutCreateMenu( DoLightColorMenu );
+	glutAddMenuEntry("White", 0);
+	glutAddMenuEntry("Red", 1);
+	glutAddMenuEntry("Green", 2);
+	glutAddMenuEntry("Blue", 3);
+	glutAddMenuEntry("Cyan", 4);
+	glutAddMenuEntry("Magenta", 5);
+
+	int lighttypemenu = glutCreateMenu(DoLightTypeMenu);
+	glutAddMenuEntry("Point Light", 0);
+	glutAddMenuEntry("Spot Light", 1);
+
 	int mainmenu = glutCreateMenu( DoMainMenu );
 	glutAddSubMenu(   "Axes",          axesmenu);
 	glutAddSubMenu(   "Axis Colors",   colormenu);
+	glutAddSubMenu("Light Colors", lightcolormenu);
+	glutAddSubMenu("Light Type", lighttypemenu);
+
 
 #ifdef DEMO_DEPTH_BUFFER
 	glutAddSubMenu(   "Depth Buffer",  depthbuffermenu);
@@ -976,36 +1066,85 @@ Keyboard( unsigned char c, int x, int y )
 
 	switch( c )
 	{
-		case 'o':
-		case 'O':
-			NowProjection = ORTHO;
-			break;
+		//case 'o':
+		//case 'O':
+		//	NowProjection = ORTHO;
+		//	break;
 
-		case 'p':
-		case 'P':
-			NowProjection = PERSP;
-			break;
+		//case 'p':
+		//case 'P':
+		//	NowProjection = PERSP;
+		//	break;
 
 		case 'q':
 		case 'Q':
 		case ESCAPE:
-			DoMainMenu( QUIT );	// will not return here
+			DoMainMenu(QUIT);	// will not return here
 			break;				// happy compiler
 
 		case 'f':
 		case 'F':
-			std::cout << "Animation Frozen" << std::endl;
 			Frozen = !Frozen;
 			if (Frozen) {
-				glutIdleFunc( NULL );
+				glutIdleFunc(NULL);
+				std::cout << "Freezing Animation." << std::endl;
 			}
 			else {
-				glutIdleFunc( Animate );
+				glutIdleFunc(Animate);
+				std::cout << "Animating Animation." << std::endl;
 			}
 			break;
 
+		case 'w':
+		case 'W':
+			LightColor = 0;
+			std::cout << "Changing color to White." << std::endl;
+			break;
+
+		case 'r':
+		case 'R':
+			LightColor = 1;
+			std::cout << "Changing color to Red." << std::endl;
+			break;
+
+		case 'g':
+		case 'G':
+			LightColor = 2;
+			std::cout << "Changing color to Green." << std::endl;
+			break;
+
+		case 'b':
+		case 'B':
+			LightColor = 3;
+			std::cout << "Changing color to Blue." << std::endl;
+			break;
+
+		case 'c':
+		case 'C':
+			LightColor = 4;
+			std::cout << "Changing color to Cyan." << std::endl;
+			break;
+
+		case 'm':
+		case 'M':
+			LightColor = 5;
+			std::cout << "Changing color to Magenta." << std::endl;
+			break;
+
+		case 'p':
+		case 'P':
+			NowLight = 0;
+			std::cout << "Changing light to Point Light." << std::endl;
+			break;
+
+		case 's':
+		case 'S':
+			NowLight = 1;
+			std::cout << "Changing light to Spot Light." << std::endl;
+			break;
+
 		default:
-			fprintf( stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c );
+			fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
 	}
 
 	// force a call to Display( ):
