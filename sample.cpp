@@ -188,6 +188,7 @@ int		ActiveButton;			// current button that is down
 GLuint	AxesList;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
 GLuint	BoxList;				// object display list
+GLuint	GridDL;
 GLuint	FooList;
 GLuint	BarList;
 GLuint	BazList;
@@ -322,9 +323,9 @@ TimeOfDaySeed( )
 //#include "glslprogram.cpp"
 //#include "vertexbufferobject.cpp"
 
-Keytimes	Xpos1, Xrot1;
-Keytimes	Ypos1, Yrot1;
-Keytimes	Zpos1, Zrot1;
+Keytimes	Xpos1, Ypos1, Zpos1;
+Keytimes	Xeye1, Yeye1, Zeye1;
+Keytimes	Rlight1, Glight1, Blight1;
 
 
 // main program:
@@ -447,7 +448,17 @@ Display( )
 
 	// set the eye position, look-at position, and up-vector:
 
-	gluLookAt( 0.f, 0.f, 3.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
+	gluLookAt(
+		Xeye1.GetValue(10 * Time) * 1.5,
+		Yeye1.GetValue(10 * Time) * 1.5,
+		Zeye1.GetValue(10 * Time) * 1.5,
+		0,
+		0,
+		0,
+		1,
+		1,
+		1
+	);
 
 	// rotate the scene:
 
@@ -491,6 +502,12 @@ Display( )
 
 	// draw the box object by calling up its display list:
 
+	// Turn # msec into the cycle ( 0 - MSEC - 1 ):
+	int msec = glutGet( GLUT_ELAPSED_TIME ) % 10000;	// 0-9999
+
+	// Turn that into a time in seconds
+	float nowTime = ((float)msec / 10000.) * 10;		// 0.-10.
+
 	float
 	lightx = 0,
 	lighty = 5,
@@ -498,35 +515,38 @@ Display( )
 
 	if ( NowLight == 0 ) {
 		glLightf( GL_LIGHT0, GL_SPOT_CUTOFF, 180.);
-		switch ( LightColor ) {
-		case 1: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 1, 0, 0); break;
-		case 2: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 0, 1, 0); break;
-		case 3: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 0, 0, 1); break;
-		case 4: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 0, 1, 1); break;
-		case 5: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 1, 0, 1); break;
-		default: SetPointLight(GL_LIGHT0, lightx, lighty, lightz, 1, 1, 1);
-		}
+		SetPointLight(
+			GL_LIGHT0,
+			lightx,
+			lighty,
+			lightz,
+			Rlight1.GetValue(nowTime),
+			Glight1.GetValue(nowTime),
+			Blight1.GetValue(nowTime)
+		);
 	}
 	else if ( NowLight == 1 ) {
-		switch ( LightColor ) {
-		case 1: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 1, 0, 0); break;
-		case 2: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 0, 1, 0); break;
-		case 3: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 0, 0, 1); break;
-		case 4: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 0, 1, 1); break;
-		case 5: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 1, 0, 1); break;
-		default: SetSpotLight(GL_LIGHT0, lightx, lighty, lightz, 0, -1, 0, 1, 1, 1);
-		}
+		SetSpotLight(
+			GL_LIGHT0,
+			lightx,
+			lighty,
+			lightz,
+			0,
+			-1,
+			0,
+			Rlight1.GetValue(nowTime * 400),
+			Glight1.GetValue(nowTime * 100),
+			Blight1.GetValue(nowTime * 200)
+		);
 	}
 
 	glEnable( GL_LIGHTING );
 	glEnable( GL_LIGHT0 );
 	glShadeModel( GL_FLAT );
 
-	// Turn # msec into the cycle ( 0 - MSEC - 1 ):
-	int msec = glutGet( GLUT_ELAPSED_TIME ) % 10000;	// 0-9999
-
-	// Turn that into a time in seconds
-	float nowTime = ((float)msec / 10000.) * 10;		// 0.-10.
+	glPushMatrix();
+	glCallList(GridDL);
+	glPopMatrix();
 
 	glPushMatrix();
 		glTranslatef(
@@ -534,25 +554,21 @@ Display( )
 			Ypos1.GetValue(nowTime),
 			Zpos1.GetValue(nowTime)
 		);
-		//glRotatef( Xrot1.GetValue(Time), 1., 0., 0. );
-		glCallList( BoxList );
+		glRotatef(10 * 360.f * Time, 0., 1., 0.);
+		glCallList( FooList );
 	glPopMatrix();
 
 	glDisable( GL_LIGHTING );
 
 	glPushMatrix();
-		switch ( LightColor ) {
-			case 1: glColor3f(1, 0, 0); break;
-			case 2: glColor3f(0, 1, 0); break;
-			case 3: glColor3f(0, 0, 1); break;
-			case 4: glColor3f(0, 1, 1); break;
-			case 5: glColor3f(1, 0, 1); break;
-			default: glColor3f(1, 1, 1);
-		}
+		glColor3f(
+			Rlight1.GetValue(nowTime),
+			Glight1.GetValue(nowTime),
+			Blight1.GetValue(nowTime)
+		);
 		glTranslatef(lightx, lighty, lightz);
 		OsuSphere( 0.5, 20, 20 );
 	glPopMatrix();
-
 
 
 #ifdef DEMO_Z_FIGHTING
@@ -875,37 +891,131 @@ InitGraphics( )
 #endif
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
+	// Obj movement
+	// Obj X
 	Xpos1.Init();
-	Xpos1.AddTimeValue( 0.0,	0.000 );
-	Xpos1.AddTimeValue( 10.0,	0.000 );
-	Xpos1.AddTimeValue( 7.5,	2.500 );
-	Xpos1.AddTimeValue( 5.0,	5.000 );
-	Xpos1.AddTimeValue( 2.5,	2.500 );
+	Xpos1.AddTimeValue( 0.0,	0.000f );
+	Xpos1.AddTimeValue( 10.0,	0.000f );
+	Xpos1.AddTimeValue( 8.0,	-1.817f );
+	Xpos1.AddTimeValue( 6.0,	6.031f );
+	Xpos1.AddTimeValue( 4.0,	-4.243f );
+	Xpos1.AddTimeValue( 2.0,	4.379f );
 
-
+	// Obj Y
 	Ypos1.Init();
-	Ypos1.AddTimeValue(0.0, 0.000);
-	Ypos1.AddTimeValue(10.0, 0.000);
-	Ypos1.AddTimeValue(7.5, 2.500);
-	Ypos1.AddTimeValue(5.0, 5.000);
-	Ypos1.AddTimeValue(2.5, 2.500);
+	Ypos1.AddTimeValue( 0.0,	0.000f );
+	Ypos1.AddTimeValue( 10.0,	0.000f );
+	Ypos1.AddTimeValue( 8.0,	7.791f );
+	Ypos1.AddTimeValue( 6.0,	2.701f );
+	Ypos1.AddTimeValue( 4.0,	1.474f );
+	Ypos1.AddTimeValue( 2.0,	9.408f );
 
-
+	// Obj Z
 	Zpos1.Init();
-	Zpos1.AddTimeValue(0.0, 0.000);
-	Zpos1.AddTimeValue(10.0, 0.000);
-	Zpos1.AddTimeValue(7.5, 2.500);
-	Zpos1.AddTimeValue(5.0, 5.000);
-	Zpos1.AddTimeValue(2.5, 2.500);
+	Zpos1.AddTimeValue( 0.0,	0.000 );
+	Zpos1.AddTimeValue( 10.0,	0.000 );
+	Zpos1.AddTimeValue( 8.0,	-6.475f );
+	Zpos1.AddTimeValue( 6.0,	6.100f );
+	Zpos1.AddTimeValue( 4.0,	-2.977f );
+	Zpos1.AddTimeValue( 2.0,	4.588f );
 
 
-	Xrot1.Init();
-	Xrot1.AddTimeValue( 0.0,	0.000 );
-	Xrot1.AddTimeValue( 0.5,	2.718 );
-	Xrot1.AddTimeValue( 2.0,	0.333 );
-	Xrot1.AddTimeValue( 5.0,	3.142 );
-	Xrot1.AddTimeValue( 8.0,	2.718 );
-	Xrot1.AddTimeValue( 10.0,	0.000 );
+	// Eye movement
+	// Eye X
+	Xeye1.Init();
+	Xeye1.AddTimeValue( 0.0f,	8 * sinf(12 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 10.0f,	8 * sinf(12 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 9.17f,	8 * sinf(1 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 8.33f,	8 * sinf(2 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 7.50f,	8 * sinf(3 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 6.67f,	8 * sinf(4 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 5.83f,	8 * sinf(5 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 5.00f,	8 * sinf(6 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 4.17f,	8 * sinf(7 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 3.33f,	8 * sinf(8 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 2.50f,	8 * sinf(9 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 1.67f,	8 * sinf(10 * (2 * M_PI / 12)));
+	Xeye1.AddTimeValue( 0.83f,	8 * sinf(11 * (2 * M_PI / 12)));
+
+	// Eye Y
+	Yeye1.Init();
+	Yeye1.AddTimeValue(0.0f,	8 * (sinf(12 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(10.0f,	8 * (sinf(12 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(9.17f,	8 * (sinf(1 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(8.33f,	8 * (sinf(2 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(7.50f,	8 * (sinf(3 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(6.67f,	8 * (sinf(4 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(5.83f,	8 * (sinf(5 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(5.00f,	8 * (sinf(6 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(4.17f,	8 * (sinf(7 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(3.33f,	8 * (sinf(8 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(2.50f,	8 * (sinf(9 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(1.67f,	8 * (sinf(10 * (6 * 2 * M_PI / 12)) + 1));
+	Yeye1.AddTimeValue(0.83f,	8 * (sinf(11 * (6 * 2 * M_PI / 12)) + 1));
+
+	// Eye Z
+	Zeye1.Init();
+	Zeye1.AddTimeValue(0.0f,	8 * cosf(12 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(10.0f,	8 * cosf(12 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(9.17f,	8 * cosf(1 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(8.33f,	8 * cosf(2 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(7.50f,	8 * cosf(3 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(6.67f,	8 * cosf(4 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(5.83f,	8 * cosf(5 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(5.00f,	8 * cosf(6 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(4.17f,	8 * cosf(7 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(3.33f,	8 * cosf(8 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(2.50f,	8 * cosf(9 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(1.67f,	8 * cosf(10 * (2 * M_PI / 12)));
+	Zeye1.AddTimeValue(0.83f,	8 * cosf(11 * (2 * M_PI / 12)));
+
+
+	// Light colors
+	// Seed the random number generator
+	std::srand(std::time(0));
+
+
+	// Red
+	Rlight1.Init();
+	Rlight1.AddTimeValue( 0.0f, 	1.000f);
+	Rlight1.AddTimeValue( 10.0f,	1.000f);
+	Rlight1.AddTimeValue( 9.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 8.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 7.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 6.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 5.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 4.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 3.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 2.0f,		(double)std::rand() / RAND_MAX);
+	Rlight1.AddTimeValue( 1.0f,		(double)std::rand() / RAND_MAX);
+
+	// Green
+	Glight1.Init();
+	Glight1.AddTimeValue( 0.0f,		1.000f);
+	Glight1.AddTimeValue( 10.0f,	1.000f);
+	Glight1.AddTimeValue( 9.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 8.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 7.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 6.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 5.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 4.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 3.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 2.0f,		(double)std::rand() / RAND_MAX);
+	Glight1.AddTimeValue( 1.0f,		(double)std::rand() / RAND_MAX);
+
+	// Blue
+	Blight1.Init();
+	Blight1.AddTimeValue( 0.0f,		1.000f);
+	Blight1.AddTimeValue( 10.0f,	1.000f);
+	Blight1.AddTimeValue( 9.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 8.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 7.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 6.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 5.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 4.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 3.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 2.0f,		(double)std::rand() / RAND_MAX);
+	Blight1.AddTimeValue( 1.0f,		(double)std::rand() / RAND_MAX);
 }
 
 
@@ -985,6 +1095,43 @@ InitLists( )
 #endif
 
 	glEndList( );
+
+
+#define XSIDE	32					// length of the x side of the grid
+#define X0      (-XSIDE/2.)			// where one side starts
+#define NX		256					// how many points in x
+#define DX		( XSIDE/(float)(NX - 1) )	// change in x between the points
+
+#define YGRID	0.f					// y-height of the grid
+
+#define ZSIDE	32					// length of the z side of the grid
+#define Z0      (-ZSIDE/2.)			// where one side starts
+#define NZ		256					// how many points in z
+#define DZ		( ZSIDE/(float)NZ )	// change in z between the points
+
+	GridDL = glGenLists(1);
+	glNewList(GridDL, GL_COMPILE);
+		SetMaterial(0.6f, 0.6f, 0.6f, 30.f);		// or whatever else you want
+		glNormal3f(0., 1., 0.);
+		for (int i = 0; i < NZ; i++)
+		{
+			glBegin(GL_QUAD_STRIP);
+			for (int j = 0; j < NX; j++)
+			{
+				glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 0));
+				glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 1));
+			}
+			glEnd();
+		}
+	glEndList();
+
+	FooList = glGenLists( 1 );
+	glNewList( FooList, GL_COMPILE );
+		SetMaterial( 1, 1, 1, 2 );
+		glScalef( 5., 5., 5. );
+		//OsuSphere(2, 20, 20);
+		LoadObjFile( (char*)"dino.obj" );
+	glEndList();
 
 
 	// create the axes:
